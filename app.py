@@ -62,3 +62,21 @@ def list_models():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", 7860)))
+
+model_payload = {
+    "object": "list",
+    "data": [{
+        "id": "gemini-2.5-pro",
+        "object": "model",
+        "created": 0,
+        "owned_by": "google"
+    }]
+}
+
+@app.get("/v1/models")
+def list_models_v1():
+    return model_payload
+
+@app.get("/models")          # 兼容老端点
+def list_models_root():
+    return model_payload
