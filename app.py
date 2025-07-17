@@ -13,8 +13,14 @@ API_URL = (
 @app.post("/v1/chat/completions")
 async def chat(req: Request, authorization: str = Header(None)):
     # 只检查 sk- 前缀即可
-    if not (authorization or "").startswith("sk-"):
-        return JSONResponse({"error": "invalid key"}, status_code=401)
+    auth = (authorization or "").strip()
+
+# 允许两种写法：Bearer sk-xxx   或   sk-xxx
+if auth.lower().startswith("bearer "):
+    auth = auth.split(" ", 1)[1]
+
+if not auth.startswith("sk-"):
+    return JSONResponse(status_code=401, content={"error": "invalid key"})
 
     data = await req.json()
     prompt = "\n".join(m["content"] for m in data.get("messages", []) if m["role"] == "user")
