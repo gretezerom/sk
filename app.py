@@ -7,7 +7,7 @@ GEMINI_KEY = os.getenv("GEMINI_API_KEY")   # 在 HF Secrets 里填 AIzaSy… 那
 
 API_URL = (
     "https://generativelanguage.googleapis.com/"
-    f"v1/models/gemini-pro:generateContent?key={GEMINI_KEY}"
+    f"v1/models/gemini-2.5-pro:generateContent?key={GEMINI_KEY}"
 )
 
 @app.post("/v1/chat/completions")
