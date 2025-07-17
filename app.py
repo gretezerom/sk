@@ -43,3 +43,16 @@ async def chat(req: Request, authorization: str = Header(None)):
 if __name__ == "__main__":
     import uvicorn, os
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", 7860)))
+
+# 让 SillyTavern 能拿到模型列表，避免 Status Check 失败
+@app.get("/v1/models")
+def list_models():
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": "gemini-2.5-pro",
+                "object": "model",
+            }
+        ]
+    }
