@@ -11,36 +11,49 @@ API_URL = (
 )
 
 # ───────────────────────────────────────────────
+async def call_gemini(prompt: str):
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        async with httpx.AsyncClient() as c:
+            r = await c.post(API_URL, json=payload, timeout=40)
+    except Exception as e:
+        # 网络 / TLS / DNS 错误
+        return None, JSONResponse({"error": str(e)}, status_code=502)
+
+    data = r.json()
+    if r.status_code != 200 or "candidates" not in data:
+        # 把 Google 的业务错误直接透给前端
+        return None, JSONResponse(data, status_code=r.status_code)
+
+    answer = data["candidates"][0]["content"]["parts"][0]["text"]
+    return answer, None
+
+# ── 主路由 ─────────────────────────────────────────
 @app.post("/v1/chat/completions")
+@app.post("/v1/chat/completions/")
+@app.post("/chat/completions")
+@app.post("/chat/completions/")
+@app.post("/chat/completion")
+@app.post("/chat/completion/")
 async def chat(req: Request, authorization: str = Header(None)):
-    # ── 解析 / 校验 sk-key ───────────────────────────
+    # ── 校验 sk-key ────────────────────────────────
     auth = (authorization or "").strip()
     if auth.lower().startswith("bearer "):
-        auth = auth.split(" ", 1)[1]              # 允许 Bearer sk-xxx
+        auth = auth.split(" ", 1)[1]
 
     if not auth.startswith("sk-"):
         return JSONResponse({"error": "invalid key"}, status_code=401)
 
-    # ── 组装 prompt ─────────────────────────────────
-    data = await req.json()
+    # ── 提取用户 prompt ────────────────────────────
+    body = await req.json()
     prompt = "\n".join(
-        m["content"] for m in data.get("messages", []) if m["role"] == "user"
+        m["content"] for m in body.get("messages", []) if m["role"] == "user"
     )
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
-    # ── 调 Gemini API ──────────────────────────────
-    async with httpx.AsyncClient() as c:
-        r = await c.post(API_URL, json=payload, timeout=40)
+    answer, error_resp = await call_gemini(prompt)
+    if error_resp:
+        return error_resp
 
-    data = r.json()                # Google 返回的原始 JSON
-
-    if r.status_code != 200 or "candidates" not in data:
-        # 直接把 Google 的错误透给前端
-        return JSONResponse(data, status_code=r.status_code)
-
-    answer = data["candidates"][0]["content"]["parts"][0]["text"]
-
-    # ── 返回 OpenAI 兼容结构 ─────────────────────────
     return {
         "id": "chatcmpl-gemini",
         "object": "chat.completion",
@@ -54,14 +67,7 @@ async def chat(req: Request, authorization: str = Header(None)):
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
     }
 
-# ── 兼容无 /v1 及尾斜杠写法 ───────────────────────
-@app.post("/v1/chat/completions/")
-@app.post("/chat/completions")
-@app.post("/chat/completions/")
-async def chat_alias(req: Request, authorization: str = Header(None)):
-    return await chat(req, authorization)
-
-# ── /v1/models 与 /models 让健康检查通过 ────────────
+# ── /models 让健康检查通过 ────────────────────────
 model_payload = {
     "object": "list",
     "data": [{
@@ -73,27 +79,17 @@ model_payload = {
 }
 
 @app.get("/v1/models")
-def list_models_v1():
-    return model_payload
-
 @app.get("/models")
 @app.get("/models/")
-def list_models_root():
+def list_models():
     return model_payload
 
-# ── 本地 / Railway 运行入口 ─────────────────────────
+# ── 主页 ping ─────────────────────────────────────
+@app.get("/")
+def ping():
+    return {"status": "ok"}
+
+# ── 本地 / Railway 运行入口 ───────────────────────
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", 7860)))
-    
-# —— 兼容 /chat/completion（单数）————————————
-@app.post("/chat/completion")
-async def chat_single(req: Request, authorization: str = Header(None)):
-    return await chat(req, authorization)
-
-# —— 将 httpx 请求包异常，避免 500 ————————————
-try:
-    async with httpx.AsyncClient() as c:
-        r = await c.post(API_URL, json=payload, timeout=40)
-except Exception as e:
-    return JSONResponse({"error": str(e)}, status_code=502)
