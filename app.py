@@ -85,3 +85,15 @@ def list_models_root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", 7860)))
+    
+# —— 兼容 /chat/completion（单数）————————————
+@app.post("/chat/completion")
+async def chat_single(req: Request, authorization: str = Header(None)):
+    return await chat(req, authorization)
+
+# —— 将 httpx 请求包异常，避免 500 ————————————
+try:
+    async with httpx.AsyncClient() as c:
+        r = await c.post(API_URL, json=payload, timeout=40)
+except Exception as e:
+    return JSONResponse({"error": str(e)}, status_code=502)
