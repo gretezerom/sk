@@ -29,12 +29,15 @@ async def chat(req: Request, authorization: str = Header(None)):
 
     # ── 调 Gemini API ─────────────────────────────────
     async with httpx.AsyncClient() as c:
-        r = await c.post(API_URL, json=payload, timeout=40)
+    r = await c.post(API_URL, json=payload, timeout=40)
 
-    if r.status_code != 200:
-        return JSONResponse(r.json(), status_code=r.status_code)
+data = r.json()
 
-    answer = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+# 若 Google 返回 error，直接转给前端
+if r.status_code != 200 or "candidates" not in data:
+    return JSONResponse(data, status_code=r.status_code)
+
+answer = data["candidates"][0]["content"]["parts"][0]["text"]
 
     # ── 返回 OpenAI 兼容结构 ───────────────────────────
     return {
