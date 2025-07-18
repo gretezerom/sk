@@ -14,8 +14,8 @@ API_URL = (
 async def call_gemini(prompt: str):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        async with httpx.AsyncClient() as c:
-            r = await c.post(API_URL, json=payload, timeout=40)
+        async with httpx.AsyncClient(http2=True, timeout=None) as c:
+            r = await c.post(API_URL, json=payload)
     except Exception as e:
         # 网络 / TLS / DNS 错误
         print("Gemini network error:", repr(e))
