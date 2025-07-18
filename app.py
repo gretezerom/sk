@@ -18,6 +18,7 @@ async def call_gemini(prompt: str):
             r = await c.post(API_URL, json=payload, timeout=40)
     except Exception as e:
         # 网络 / TLS / DNS 错误
+        print("Gemini network error:", repr(e))
         return None, JSONResponse({"error": str(e)}, status_code=502)
 
     data = r.json()
