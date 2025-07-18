@@ -80,3 +80,9 @@ def list_models_v1():
 @app.get("/models")          # 兼容老端点
 def list_models_root():
     return model_payload
+    # 兼容末尾带 / 以及没有 v1 的写法
+@app.post("/v1/chat/completions/")
+@app.post("/chat/completions")
+@app.post("/chat/completions/")
+async def chat_alias(request: Request, authorization: str = Header(None)):
+    return await chat(request, authorization)   # 复用主函数
