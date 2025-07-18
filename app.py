@@ -55,11 +55,23 @@ async def chat(req: Request, authorization: str = Header(None)):
         return JSONResponse({"error": "invalid key"}, status_code=401)
 
     # ── 提取用户 prompt ────────────────────────────
-    body = await req.json()
-prompt = "\n".join(
-    f"{m['role']}: {m['content']}"
-    for m in body.get("messages", [])
-)
+body = await req.json()
+
+role_map = {
+    "system": "user",      # Gemini 没有 system 角色，放在 user 里即可
+    "user":   "user",
+    "assistant": "model"
+}
+
+contents = []
+for msg in body.get("messages", []):
+    gemini_role = role_map.get(msg["role"], "user")
+    contents.append({
+        "role": gemini_role,
+        "parts": [{"text": msg["content"]}]
+    })
+
+payload = {"contents": contents}
 
     answer, error_resp = await call_gemini(prompt)
     if error_resp:
