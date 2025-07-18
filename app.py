@@ -56,9 +56,10 @@ async def chat(req: Request, authorization: str = Header(None)):
 
     # ── 提取用户 prompt ────────────────────────────
     body = await req.json()
-    prompt = "\n".join(
-        m["content"] for m in body.get("messages", []) if m["role"] == "user"
-    )
+prompt = "\n".join(
+    f"{m['role']}: {m['content']}"
+    for m in body.get("messages", [])
+)
 
     answer, error_resp = await call_gemini(prompt)
     if error_resp:
