@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import httpx, os
 
 app = FastAPI()
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")          # Railway → Variables
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")          # Railway → Variables.
 
 API_URL = (
     "https://generativelanguage.googleapis.com/"
