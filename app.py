@@ -3,6 +3,15 @@ from fastapi.responses import JSONResponse
 import httpx, os
 
 app = FastAPI()
+# 加在 app = FastAPI() 下面
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # 任何域都能访问
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")          # Railway → Variables.
 
 API_URL = (
